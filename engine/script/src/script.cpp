@@ -1027,6 +1027,28 @@ namespace dmScript
         return id;
     }
 
+    HOpaqueHandle CheckOpaqueHandle(lua_State* L, int index)
+    {
+        if (lua_type(L, index) == LUA_TNUMBER)
+        {
+            HOpaqueHandle handle = (HOpaqueHandle) luaL_checkinteger(L, index);
+
+            if (handle == INVALID_OPAQUE_HANDLE)
+            {
+                luaL_error(L, "Argument %d is not a valid opaque handle", index);
+            }
+
+            return handle;
+        }
+        luaL_error(L, "Expected argument %d is not a correct opaque handle type", index);
+        return INVALID_OPAQUE_HANDLE;
+    }
+
+    void PushOpaqueHandle(lua_State* L, const HOpaqueHandle& handle)
+    {
+        lua_pushinteger(L, (uint32_t) handle);
+    }
+
     struct ScriptWorld
     {
         HContext m_Context;

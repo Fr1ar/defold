@@ -88,6 +88,9 @@ public:
      */
     T* Get(HOpaqueHandle handle);
 
+    // Note: This only gets the first handle!!
+    HOpaqueHandle GetHandle(T* obj);
+
     /*# container put
      *
      * Adds a reference to an object to the list and returns an opaque handle to that object. If the container
@@ -134,6 +137,11 @@ private:
     uint16_t* m_ObjectVersions;
     uint32_t  m_Capacity;
     uint16_t  m_Version;
+
+    inline HOpaqueHandle ToHandle(uint16_t index, uint16_t version)
+    {
+        return m_Version << 16 | index;
+    }
 
     // Internal helper functions
     inline T* GetByIndex(uint32_t i)
@@ -232,6 +240,20 @@ T* dmOpaqueHandleContainer<T>::Get(HOpaqueHandle handle)
 }
 
 template <typename T>
+HOpaqueHandle dmOpaqueHandleContainer<T>::GetHandle(T* obj)
+{
+    for (int i = 0; i < m_Capacity; ++i)
+    {
+        if (m_Objects[i] == obj)
+        {
+            return ToHandle(i, m_ObjectVersions[i]);
+        }
+    }
+
+    return INVALID_OPAQUE_HANDLE;
+}
+
+template <typename T>
 HOpaqueHandle dmOpaqueHandleContainer<T>::Put(T* obj)
 {
     uint32_t index = GetFirstEmptyIndex();
@@ -250,7 +272,7 @@ HOpaqueHandle dmOpaqueHandleContainer<T>::Put(T* obj)
     m_ObjectVersions[index] = m_Version;
     m_Objects[index]        = obj;
 
-    return m_Version << 16 | index;
+    return ToHandle(index, m_Version);
 }
 
 template <typename T>

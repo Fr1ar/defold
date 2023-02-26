@@ -121,6 +121,92 @@ namespace dmGraphics
         return "<unknown adapter type>";
     }
 
+    struct GraphicsHandleAddrToAssetType
+    {
+        uint64_t* m_Addr;
+        AssetType m_Type;
+    };
+
+    struct GraphicsHandleContext
+    {
+        dmArray<GraphicsHandleAddrToAssetType> m_AssetAddrToType;
+        dmOpaqueHandleContainer<uint64_t>      m_HandleContainer;
+    };
+
+    static GraphicsHandleContext m_GraphicsHandlesContext;
+
+    template<typename T>
+    static T AddToHandleContainer(T res, AssetType type)
+    {
+        if (m_GraphicsHandlesContext.m_AssetAddrToType.Full())
+        {
+            m_GraphicsHandlesContext.m_AssetAddrToType.OffsetCapacity(8);
+        }
+
+        if (m_GraphicsHandlesContext.m_HandleContainer.Full())
+        {
+            m_GraphicsHandlesContext.m_HandleContainer.Allocate(8);
+        }
+
+        uint64_t* res_addr = (uint64_t*) res;
+
+        GraphicsHandleAddrToAssetType addr_to_type;
+        addr_to_type.m_Addr = res_addr;
+        addr_to_type.m_Type = type;
+
+        m_GraphicsHandlesContext.m_AssetAddrToType.Push(addr_to_type);
+
+        HOpaqueHandle handle = m_GraphicsHandlesContext.m_HandleContainer.Put(res_addr);
+        assert(handle != INVALID_OPAQUE_HANDLE);
+        return res;
+    }
+
+    template<typename T>
+    static void RemoveFromHandleContainer(T res, AssetType type)
+    {
+        uint64_t* res_addr = (uint64_t*) res;
+        for (int i = 0; i < m_GraphicsHandlesContext.m_AssetAddrToType.Size(); ++i)
+        {
+            if (m_GraphicsHandlesContext.m_AssetAddrToType[i].m_Addr == res_addr)
+            {
+                assert(type == m_GraphicsHandlesContext.m_AssetAddrToType[i].m_Type);
+                m_GraphicsHandlesContext.m_AssetAddrToType.EraseSwap(i);
+                break;
+            }
+        }
+
+        HOpaqueHandle handle = m_GraphicsHandlesContext.m_HandleContainer.GetHandle(res_addr);
+        assert(handle != INVALID_OPAQUE_HANDLE);
+        m_GraphicsHandlesContext.m_HandleContainer.Release(handle);
+    }
+
+    HOpaqueHandle GetOpaqueHandle(void* asset_ptr)
+    {
+        uint64_t* res_addr = (uint64_t*) asset_ptr;
+        return m_GraphicsHandlesContext.m_HandleContainer.GetHandle(res_addr);
+    }
+
+    void* GetObjectFromOpaquehandle(HOpaqueHandle handle, AssetType* asset_type)
+    {
+        AssetType type = ASSET_TYPE_INVALID;
+        void* obj_ptr = (void*) m_GraphicsHandlesContext.m_HandleContainer.Get(handle);
+        if (obj_ptr != 0)
+        {
+            uint64_t* res_addr = (uint64_t*) obj_ptr;
+            for (int i = 0; i < m_GraphicsHandlesContext.m_AssetAddrToType.Size(); ++i)
+            {
+                if (m_GraphicsHandlesContext.m_AssetAddrToType[i].m_Addr == res_addr)
+                {
+                    type = m_GraphicsHandlesContext.m_AssetAddrToType[i].m_Type;
+                    break;
+                }
+            }
+        }
+
+        *asset_type = type;
+        return obj_ptr;
+    }
+
     WindowParams::WindowParams()
     : m_ResizeCallback(0x0)
     , m_ResizeCallbackUserData(0x0)
@@ -814,10 +900,11 @@ namespace dmGraphics
     }
     HRenderTarget NewRenderTarget(HContext context, uint32_t buffer_type_flags, const TextureCreationParams creation_params[MAX_BUFFER_TYPE_COUNT], const TextureParams params[MAX_BUFFER_TYPE_COUNT])
     {
-        return g_functions.m_NewRenderTarget(context, buffer_type_flags, creation_params, params);
+        return AddToHandleContainer(g_functions.m_NewRenderTarget(context, buffer_type_flags, creation_params, params), ASSET_TYPE_RENDER_TARGET);
     }
     void DeleteRenderTarget(HRenderTarget render_target)
     {
+        RemoveFromHandleContainer(render_target, ASSET_TYPE_RENDER_TARGET);
         g_functions.m_DeleteRenderTarget(render_target);
     }
     void SetRenderTarget(HContext context, HRenderTarget render_target, uint32_t transient_buffer_types)
@@ -842,10 +929,11 @@ namespace dmGraphics
     }
     HTexture NewTexture(HContext context, const TextureCreationParams& params)
     {
-        return g_functions.m_NewTexture(context, params);
+        return AddToHandleContainer(g_functions.m_NewTexture(context, params), ASSET_TYPE_TEXTURE);
     }
     void DeleteTexture(HTexture t)
     {
+        RemoveFromHandleContainer(t, ASSET_TYPE_TEXTURE);
         g_functions.m_DeleteTexture(t);
     }
     void SetTexture(HTexture texture, const TextureParams& params)

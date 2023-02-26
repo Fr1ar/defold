@@ -23,6 +23,8 @@
 #include <ddf/ddf.h>
 #include <graphics/graphics_ddf.h>
 
+#include <dlib/opaque_handle_container.h>
+
 namespace dmGraphics
 {
     typedef void (*WindowResizeCallback)(void* user_data, uint32_t width, uint32_t height);
@@ -102,6 +104,13 @@ namespace dmGraphics
     {
         BufferType m_AttachmentToBufferType[MAX_ATTACHMENT_COUNT];
         AttachmentToBufferType();
+    };
+
+    enum AssetType
+    {
+        ASSET_TYPE_INVALID       = -1,
+        ASSET_TYPE_TEXTURE       = 0,
+        ASSET_TYPE_RENDER_TARGET = 1,
     };
 
     // Texture type
@@ -435,6 +444,9 @@ namespace dmGraphics
      * @return Height of the window. If no window is opened, 0 is always returned.
      */
     uint32_t GetWindowHeight(HContext context);
+
+    HOpaqueHandle GetOpaqueHandle(void* asset_ptr);
+    void*         GetObjectFromOpaquehandle(HOpaqueHandle handle, AssetType* asset_type);
 
     /**
      * Set the size of the opened window, if any. If no window is opened, this function does nothing. If successfull,

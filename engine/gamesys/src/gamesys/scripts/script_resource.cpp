@@ -982,6 +982,20 @@ static int SetTexture(lua_State* L)
     return 0;
 }
 
+static int GetTextureHandle(lua_State* L)
+{
+    int top                             = lua_gettop(L);
+    dmhash_t path_hash                  = dmScript::CheckHashOrString(L, 1);
+    dmGraphics::HTexture texture_res    = (dmGraphics::HTexture) CheckResource(L, g_ResourceModule.m_Factory, path_hash, "texturec");
+    HOpaqueHandle texture_opaque_handle = dmGraphics::GetOpaqueHandle(texture_res);
+
+    assert(texture_opaque_handle != INVALID_OPAQUE_HANDLE);
+    dmScript::PushOpaqueHandle(L, texture_opaque_handle);
+
+    assert(top + 1 == lua_gettop(L));
+    return 1;
+}
+
 // Allocates a new array and fills it with data from a lua table at top of stack.
 // Only supports number values. Note: Doesn't do any error checking!
 template<typename T>
@@ -2297,6 +2311,8 @@ static const luaL_reg Module_methods[] =
     {"get_buffer", GetBuffer},
     {"set_buffer", SetBuffer},
     {"get_text_metrics", GetTextMetrics},
+
+    {"get_texture_handle", GetTextureHandle},
 
     // LiveUpdate functionality in resource namespace
     {"get_current_manifest", Deprecated_Resource_GetCurrentManifest},

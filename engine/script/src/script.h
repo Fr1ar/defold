@@ -23,6 +23,8 @@
 #include <dlib/message.h>
 #include <dlib/configfile.h>
 #include <dlib/log.h>
+#include <dlib/opaque_handle_container.h>
+
 #include <resource/resource.h>
 #include <ddf/ddf.h>
 
@@ -382,6 +384,10 @@ namespace dmScript
      * @return unique identifier for the instance
      */
     uintptr_t GetInstanceId(lua_State* L);
+
+    void PushOpaqueHandle(lua_State* L, const HOpaqueHandle& handle);
+
+    HOpaqueHandle CheckOpaqueHandle(lua_State* L, int index);
 
     /**
      * Create a "world" for this script, normally this matches a GO collection,
