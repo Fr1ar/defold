@@ -47,18 +47,22 @@
 
 (defn strip-default-scale-from-any-instance-desc [any-instance-desc]
   ;; GameObject$InstanceDesc, GameObject$EmbeddedInstanceDesc, or GameObject$CollectionInstanceDesc in map format.
-  (let [scale (:scale3 any-instance-desc)]
-    (if (or (= game-object-common/default-scale-value scale)
-            (protobuf/default-read-scale-value? scale))
+  (let [scale3 (:scale3 any-instance-desc)]
+    (if (and (some? scale3)
+             (or (= game-object-common/default-scale-value scale3)
+                 (protobuf/default-read-scale-value? scale3)))
       (dissoc any-instance-desc :scale3)
       any-instance-desc)))
 
 (defn- sanitize-any-instance-desc-scale [any-instance-desc]
   ;; GameObject$InstanceDesc, GameObject$EmbeddedInstanceDesc, or GameObject$CollectionInstanceDesc in map format.
-  (-> any-instance-desc
-      (assoc :scale3 (read-scale3-or-scale any-instance-desc))
-      (dissoc :scale)
-      (strip-default-scale-from-any-instance-desc)))
+  (let [scale3 (read-scale3-or-scale any-instance-desc)
+        any-instance-desc (dissoc any-instance-desc :scale)] ; Strip legacy uniform scale.
+    (if (nil? scale3)
+      any-instance-desc
+      (-> any-instance-desc
+          (assoc :scale3 scale3)
+          (strip-default-scale-from-any-instance-desc)))))
 
 (defn- sanitize-any-instance-desc [any-instance-desc component-property-descs-key]
   ;; GameObject$InstanceDesc, GameObject$EmbeddedInstanceDesc, or GameObject$CollectionInstanceDesc in map format.

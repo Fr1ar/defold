@@ -1051,10 +1051,10 @@
                                              (:modifiers pb))))))
 
 (defn- add-default-properties-to-modifier [mod-pb]
-  (update mod-pb :properties #(or (not-empty %) (get-in mod-types [(:type mod-pb) :template :properties]))))
+  (protobuf/sanitize mod-pb :properties #(or (not-empty %) (get-in mod-types [(:type mod-pb) :template :properties]))))
 
 (defn- add-default-properties-to-modifiers [pb]
-  (update pb :modifiers (partial mapv add-default-properties-to-modifier)))
+  (protobuf/sanitize-repeated pb :modifiers add-default-properties-to-modifier))
 
 (defn register-resource-types [workspace]
   (resource-node/register-ddf-resource-type workspace
